@@ -20,7 +20,7 @@ class DQNRobotSolver():
     def __init__(self, env, environment_name, n_observations, n_actions, n_win_ticks=195, min_episodes= 100, max_env_steps=None, gamma=1.0, epsilon=1.0, epsilon_min=0.01, epsilon_log_decay=0.995, alpha=0.01, alpha_decay=0.01, batch_size=64, monitor=False, quiet=False):
         self.memory = deque(maxlen=100000)
         self._env = env
-        
+
         self.input_dim = n_observations
         self.n_actions = n_actions
         self.gamma = gamma
@@ -37,34 +37,34 @@ class DQNRobotSolver():
 
         # Init model
         self.model = Sequential()
-        
+
         self.model.add(Dense(24, input_dim=self.input_dim, activation='tanh'))
         self.model.add(Dense(48, activation='tanh'))
         self.model.add(Dense(self.n_actions, activation='linear'))
         self.model.compile(loss='mse', optimizer=Adam(lr=self.alpha, decay=self.alpha_decay))
-    
+
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
 
     def choose_action(self, state, epsilon, do_train, iteration=0):
-        
+
         if do_train and (np.random.random() <= epsilon):
             # We return a random sample form the available action space
             print(">>>>>Chosen Random ACTION")
             action_chosen = self._env.action_space.sample()
-             
+
         else:
             # We return the best known prediction based on the state
             action_chosen = np.argmax(self.model.predict(state))
-        
+
         if do_train:
             print("LEARNING A="+str(action_chosen)+",E="+str(round(epsilon, 3))+",I="+str(iteration))
         else:
             print("RUNNING A="+str(action_chosen)+",E="+str(round(epsilon, 3))+",I="+str(iteration))
-        
+
         return action_chosen
-        
+
 
     def get_epsilon(self, t):
         new_epsilon = max(self.epsilon_min, min(self.epsilon, 1.0 - math.log10((t + 1) * self.epsilon_decay)))
@@ -83,21 +83,21 @@ class DQNRobotSolver():
             y_target[0][action] = reward if done else reward + self.gamma * np.max(self.model.predict(next_state)[0])
             x_batch.append(state[0])
             y_batch.append(y_target[0])
-        
+
         self.model.fit(np.array(x_batch), np.array(y_batch), batch_size=len(x_batch), verbose=0)
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
-            
+
     def run(self, num_episodes, do_train=False):
-        
+
         rate = rospy.Rate(30)
-        
+
         #scores = deque(maxlen=100)
 
         for e in range(num_episodes):
-            
+
             init_state = self._env.reset()
-            
+
             state = self.preprocess_state(init_state)
             done = False
             i = 0
@@ -107,14 +107,14 @@ class DQNRobotSolver():
                 action = self.choose_action(state, self.get_epsilon(e), do_train, i)
                 next_state, reward, done, _ = self._env.step(action)
                 next_state = self.preprocess_state(next_state)
-                
+
                 if do_train:
                     # If we are training we want to remember what I did and process it.
                     self.remember(state, action, reward, next_state, done)
-                
+
                 state = next_state
                 i += 1
-                
+
 
            # scores.append(i)
            # mean_score = np.mean(scores)
@@ -126,42 +126,42 @@ class DQNRobotSolver():
             print('Episode: {}'.format(e))
             if do_train:
                 self.replay(self.batch_size)
-            
+
 
         #if not self.quiet: print('Did not solve after {} episodes'.format(e))
         return e
-        
+
     def save(self, model_name, models_dir_path="/tmp"):
         """
         We save the current model
         """
-        
+
         model_name_yaml_format = model_name+".yaml"
         model_name_HDF5_format = model_name+".h5"
-        
+
         model_name_yaml_format_path = os.path.join(models_dir_path,model_name_yaml_format)
         model_name_HDF5_format_path = os.path.join(models_dir_path,model_name_HDF5_format)
-        
+
         # serialize model to YAML
         model_yaml = self.model.to_yaml()
-        
+
         with open(model_name_yaml_format_path, "w") as yaml_file:
             yaml_file.write(model_yaml)
         # serialize weights to HDF5: http://www.h5py.org/
         self.model.save_weights(model_name_HDF5_format_path)
         print("Saved model to disk")
-        
+
     def load(self, model_name, models_dir_path="/tmp"):
         """
         Loads a previously saved model
         """
-        
+
         model_name_yaml_format = model_name+".yaml"
         model_name_HDF5_format = model_name+".h5"
-        
+
         model_name_yaml_format_path = os.path.join(models_dir_path,model_name_yaml_format)
         model_name_HDF5_format_path = os.path.join(models_dir_path,model_name_HDF5_format)
-        
+
         # load yaml and create model
         yaml_file = open(model_name_yaml_format_path, 'r')
         loaded_model_yaml = yaml_file.read()
@@ -170,25 +170,24 @@ class DQNRobotSolver():
         # load weights into new model
         self.model.load_weights(model_name_HDF5_format_path)
         print("Loaded model from disk")
-        
+
 if __name__ == '__main__':
     rospy.init_node('cube_nav_deep_qlearn', anonymous=True, log_level=rospy.DEBUG)
-    
+
     # Init OpenAI_ROS ENV
     task_and_robot_environment_name = rospy.get_param('/moving_cube/task_and_robot_environment_name')
     openai_ros_env_object = StartOpenAI_ROS_Environment(task_and_robot_environment_name)
     rospy.loginfo("Starting Learning")
-    
-    
-    
+
+
     rospackage_name = "moving_cube_training"
     model_name = "cube_"
-    
+
     environment_name = 'MovingCubeOneDiskWalk-v0'
-    
+
     n_observations = rospy.get_param('/moving_cube/n_observations')
     n_actions = rospy.get_param('/moving_cube/n_actions')
-    
+
     n_episodes_training = rospy.get_param('/moving_cube/episodes_training')
     n_episodes_running = rospy.get_param('/moving_cube/episodes_running')
     n_win_ticks = rospy.get_param('/moving_cube/n_win_ticks')
@@ -203,8 +202,8 @@ if __name__ == '__main__':
     batch_size = rospy.get_param('/moving_cube/batch_size')
     monitor = rospy.get_param('/moving_cube/monitor')
     quiet = rospy.get_param('/moving_cube/quiet')
-    
-    
+
+
     agent = DQNRobotSolver(     openai_ros_env_object,
                                 environment_name,
                                 n_observations,
@@ -222,18 +221,18 @@ if __name__ == '__main__':
                                 monitor,
                                 quiet)
     agent.run(num_episodes=n_episodes_training, do_train=True)
-    
-    
+
+
     rospack = rospkg.RosPack()
     pkg_path = rospack.get_path(rospackage_name)
     outdir = pkg_path + '/models'
     if not os.path.exists(outdir):
         os.makedirs(outdir)
         rospy.logfatal("Created folder="+str(outdir))
-    
+
     agent.save(model_name, outdir)
     agent.load(model_name, outdir)
-    
+
     agent.run(num_episodes=n_episodes_running, do_train=False)
-    
+
     rospy.loginfo("END")
