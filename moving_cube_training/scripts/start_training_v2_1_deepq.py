@@ -56,7 +56,7 @@ def train_deepqmodel():
     act.save(out_model_file_path)
     rospy.logwarn("Saving model to movingcube_model.pkl...DONE")
 
-def use_trainedmodel()
+def use_trainedmodel():
 
     rospy.init_node('start_usingtrainedmodel_v2_1_deepq_node', anonymous=True, log_level=rospy.WARN)
     # TODO: Test and see where to place it
