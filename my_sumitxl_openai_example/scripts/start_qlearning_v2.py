@@ -15,14 +15,13 @@ from openai_ros.openai_ros_common import StartOpenAI_ROS_Environment
 if __name__ == '__main__':
 
     rospy.init_node('sumitxl_room_qlearn',
-                    anonymous=True, log_level=rospy.DEBUG)
+                    anonymous=True, log_level=rospy.WARN)
 
     # Init OpenAI_ROS ENV
     rospy.logwarn(">>>>>>>>>>>>START QLEARNING SUMMIT")
-    task_and_robot_environment_name = rospy.get_param(
-        '/sumit_xl/task_and_robot_environment_name')
-    env = StartOpenAI_ROS_Environment(
-        task_and_robot_environment_name)
+    task_and_robot_environment_name = rospy.get_param('/sumit_xl/task_and_robot_environment_name')
+    rospy.logwarn(">>>>>>>>>>>>Environment:"+task_and_robot_environment_name)
+    env = StartOpenAI_ROS_Environment(task_and_robot_environment_name)
     print(">>>>>>>>>>>>START QLEARNING SUMMIT LOADED ENV")
     # Create the Gym environment
     rospy.loginfo(">>>>>>>>>>>>Gym environment done")
