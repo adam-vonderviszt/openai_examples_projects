@@ -4,6 +4,7 @@ import gym
 import numpy
 import time
 import qlearn
+# import sarsa
 from gym import wrappers
 # ROS packages required
 import rospy
@@ -13,7 +14,7 @@ from openai_ros.openai_ros_common import StartOpenAI_ROS_Environment
 
 if __name__ == '__main__':
 
-    rospy.init_node('example_turtlebot2_maze_qlearn',
+    rospy.init_node('example_turtlebot2_wall_qlearn',
                     anonymous=True, log_level=rospy.WARN)
 
     # Init OpenAI_ROS ENV
